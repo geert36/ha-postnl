@@ -26,21 +26,27 @@ class OAuth2FlowHandler(
         self.reauth_entry = self.hass.config_entries.async_get_entry(
             self.context["entry_id"]
         )
+        _LOGGER.debug("Reauthentication initiated for entry ID: %s", self.context["entry_id"])
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(self, user_input=None):
         """Dialog that informs the user that reauth is required."""
+        _LOGGER.info("User needs to confirm reauthentication.")
         if user_input is None:
             return self.async_show_form(
                 step_id="reauth_confirm"
             )
+        _LOGGER.debug("User confirmed reauthentication. Proceeding to user input.")
         return await self.async_step_user()
 
     async def async_oauth_create_entry(self, data: dict) -> dict:
         """Create an oauth config entry or update existing entry for reauth."""
         if self.reauth_entry:
+            _LOGGER.info("Updating existing OAuth entry with new data for reauth entry ID: %s", self.reauth_entry.entry_id)
             self.hass.config_entries.async_update_entry(self.reauth_entry, data=data)
             await self.hass.config_entries.async_reload(self.reauth_entry.entry_id)
+            _LOGGER.info("Reauthentication successful, entry updated for entry ID: %s", self.reauth_entry.entry_id)
             return self.async_abort(reason="reauth_successful")
 
+        _LOGGER.debug("Creating new OAuth config entry.")
         return await super().async_oauth_create_entry(data)

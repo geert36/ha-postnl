@@ -20,10 +20,9 @@ from .login_api import PostNLLoginAPI
 
 _LOGGER = logging.getLogger(__name__)
 
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> True:
     """Set up PostNL from config entry."""
-    _LOGGER.debug("Setup Entry PostNL")
+    _LOGGER.debug("Setting up PostNL with config entry ID: %s", entry.entry_id)
 
     hass.data.setdefault(DOMAIN, {})
 
@@ -32,24 +31,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> True:
     auth = AsyncConfigEntryAuth(session)
 
     try:
+        _LOGGER.debug("Checking and refreshing OAuth token for entry ID: %s", entry.entry_id)
         await auth.check_and_refresh_token()
     except requests.exceptions.ConnectionError as exception:
+        _LOGGER.error("Failed to retrieve OAuth data for PostNL: %s", exception)
         raise ConfigEntryNotReady("Unable to retrieve oauth data from PostNL") from exception
 
-    hass.data[DOMAIN][entry.entry_id] = {
-        'auth': auth
-    }
+    hass.data[DOMAIN][entry.entry_id] = {'auth': auth}
 
     _LOGGER.debug('Using access token: %s', auth.access_token)
 
     postnl_login_api = PostNLLoginAPI(auth.access_token)
 
     try:
+        _LOGGER.debug("Fetching user info from PostNL API")
         userinfo = await hass.async_add_executor_job(postnl_login_api.userinfo)
     except (requests.exceptions.RequestException, urllib3.exceptions.MaxRetryError) as exception:
+        _LOGGER.error("Failed to retrieve user information from PostNL: %s", exception)
         raise ConfigEntryNotReady("Unable to retrieve user information from PostNL.") from exception
 
     if "error" in userinfo:
+        _LOGGER.error("Error in retrieving user information from PostNL: %s", userinfo.get("error"))
         raise ConfigEntryNotReady("Error in retrieving user information from PostNL.")
 
     hass.data[DOMAIN][entry.entry_id]['userinfo'] = userinfo
@@ -57,19 +59,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> True:
     device_registry = dr.async_get(hass)
     entity_registry = er.async_get(hass)
 
-    for device_entry in dr.async_entries_for_config_entry(
-            device_registry, entry.entry_id
-    ):
-        if (
-                device_entry.identifiers == {(DOMAIN, userinfo.get('account_id'))}
-        ):
-            _LOGGER.debug(
-                "Migrating entry %s", device_entry.identifiers
-            )
-            for entity_entry in er.async_entries_for_device(
-                    entity_registry, device_entry.id, True
-            ):
-                _LOGGER.debug('Migrating entity: %s', entity_entry.unique_id)
+    _LOGGER.debug("Migrating devices and entities for config entry ID: %s", entry.entry_id)
+    for device_entry in dr.async_entries_for_config_entry(device_registry, entry.entry_id):
+        if device_entry.identifiers == {(DOMAIN, userinfo.get('account_id'))}:
+            _LOGGER.debug("Migrating device with identifiers: %s", device_entry.identifiers)
+            for entity_entry in er.async_entries_for_device(entity_registry, device_entry.id, True):
+                _LOGGER.debug('Migrating entity with unique ID: %s', entity_entry.unique_id)
                 if entity_entry.unique_id.startswith(userinfo.get('account_id')):
                     continue
 
@@ -83,16 +78,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> True:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    _LOGGER.debug("PostNL setup completed for entry ID: %s", entry.entry_id)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload PostNL config entry."""
-    _LOGGER.debug('Reloading PostNL integration')
+    _LOGGER.debug('Unloading PostNL integration for entry ID: %s', entry.entry_id)
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
+        _LOGGER.debug("PostNL entry ID: %s unloaded successfully", entry.entry_id)
         hass.data[DOMAIN].pop(entry.entry_id)
+    else:
+        _LOGGER.warning("Failed to unload PostNL entry ID: %s", entry.entry_id)
 
     return unload_ok
 
@@ -113,28 +112,28 @@ class AsyncConfigEntryAuth:
         return self.oauth_session.token[CONF_ACCESS_TOKEN]
 
     async def force_refresh_expire(self):
-        _LOGGER.debug('Force token refresh')
+        _LOGGER.debug('Forcing token refresh due to expiration')
         self.oauth_session.token["expires_at"] = time.time() - 600
 
     async def check_and_refresh_token(self) -> str:
         """Check the token."""
 
         try:
+            _LOGGER.debug("Ensuring token validity for access token: %s", self.access_token)
             await self.oauth_session.async_ensure_token_valid()
             graphql = PostNLGraphql(self.access_token)
+            _LOGGER.debug("Fetching user profile from PostNL GraphQL API")
             await self.oauth_session.hass.async_add_executor_job(graphql.profile)
 
         except (ClientResponseError, ClientError) as exception:
-            _LOGGER.debug("API error: %s", exception)
+            _LOGGER.error("API error occurred during token validation: %s", exception)
             if exception.status == 400:
-                self.oauth_session.config_entry.async_start_reauth(
-                    self.oauth_session.hass
-                )
-
+                _LOGGER.warning("Bad request error (400). Initiating reauth flow.")
+                self.oauth_session.config_entry.async_start_reauth(self.oauth_session.hass)
             raise HomeAssistantError(exception) from exception
-        except TransportQueryError as exception:
-            _LOGGER.debug("GraphQL error: %s", exception)
 
+        except TransportQueryError as exception:
+            _LOGGER.warning("GraphQL error occurred: %s. Refreshing token and retrying.", exception)
             await self.force_refresh_expire()
             await self.oauth_session.async_ensure_token_valid()
 

@@ -1,7 +1,10 @@
 import logging
+import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import config_entry_oauth2_flow
+from homeassistant import config_entries
+from homeassistant.core import callback
 
 from .const import DOMAIN
 
@@ -44,3 +47,8 @@ class OAuth2FlowHandler(
             return self.async_abort(reason="reauth_successful")
 
         return await super().async_oauth_create_entry(data)
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        return OptionsFlowHandler(config_entry)

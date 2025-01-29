@@ -6,7 +6,6 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
 from . import DOMAIN
 from .coordinator import PostNLCoordinator
@@ -14,12 +13,12 @@ from .structs.package import Package
 
 _LOGGER = logging.getLogger(__name__)
 
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     """Set up the PostNL sensor platform."""
     _LOGGER.debug("Setting up PostNL sensors")
 
     coordinator = PostNLCoordinator(hass, entry)
+    
     _LOGGER.debug("Starting first refresh of coordinator")
     await coordinator.async_config_entry_first_refresh()
     
@@ -127,3 +126,4 @@ class PostNLDelivery(CoordinatorEntity, Entity):
                 self._attributes['enroute'].append(vars(package))
 
         self._state = len(self._attributes['enroute'])
+        _LOGGER.debug('Sensor %s state updated to %s', self.name, self._state)

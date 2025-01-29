@@ -1,10 +1,10 @@
 import logging
-import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant import config_entries
 from homeassistant.core import callback
+import voluptuous as vol
 
 from .const import DOMAIN
 

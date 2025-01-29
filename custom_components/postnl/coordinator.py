@@ -1,11 +1,12 @@
 import asyncio
 import logging
+import voluptuous as vol
 from datetime import timedelta
 
 import requests
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import (DataUpdateCoordinator,
-                                                      UpdateFailed)
+from homeassistant.helpers.update_coordinator import (DataUpdateCoordinator, UpdateFailed)
+from homeassistant.helpers import config_validation as cv
 
 from . import AsyncConfigEntryAuth, PostNLGraphql
 from .const import DOMAIN
@@ -14,6 +15,11 @@ from .structs.package import Package
 
 _LOGGER = logging.getLogger(__name__)
 
+# Define a schema for the update interval configuration
+CONFIG_SCHEMA = vol.Schema({
+    vol.Optional('update_interval', default=90): cv.positive_int,
+})
+
 class PostNLCoordinator(DataUpdateCoordinator):
     data: dict[str, list[Package]]
     graphq_api: PostNLGraphql
@@ -21,13 +27,17 @@ class PostNLCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize PostNL coordinator."""
+        self.config_entry = config_entry
+        update_interval_seconds = self.config_entry.options.get('update_interval', 90)
+        update_interval = timedelta(seconds=update_interval_seconds)
+
         super().__init__(
             hass,
             _LOGGER,
             name="PostNL",
-            update_interval=timedelta(seconds=90),
+            update_interval=update_interval,
         )
-        _LOGGER.debug("PostNLCoordinator initialized with update interval: %s", self.update_interval)
+        _LOGGER.debug("PostNLCoordinator initialized with update interval: %s seconds", self.update_interval.total_seconds())
         
     async def _async_update_data(self) -> dict[str, list[Package]]:
         _LOGGER.debug("Starting data update for PostNL.")

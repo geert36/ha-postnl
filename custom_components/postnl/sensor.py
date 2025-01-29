@@ -19,7 +19,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     """Set up the PostNL sensor platform."""
     _LOGGER.debug("Setting up PostNL sensors")
 
-    coordinator = PostNLCoordinator(hass)
+    coordinator = PostNLCoordinator(hass, entry)
+    _LOGGER.debug("Starting first refresh of coordinator")
     await coordinator.async_config_entry_first_refresh()
     
     userinfo = hass.data[DOMAIN][entry.entry_id].get("userinfo", {})
@@ -33,7 +34,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         PostNLDelivery(
             coordinator=coordinator,
             postnl_userinfo=userinfo,
-            unique_id= userinfo.get('account_id') + "_" + "delivery",
+            unique_id=userinfo.get('account_id') + "_" + "delivery",
             name="PostNL_delivery"
         ),
         PostNLDelivery(

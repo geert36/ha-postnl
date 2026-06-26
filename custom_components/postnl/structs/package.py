@@ -11,6 +11,9 @@ class Package:
     planned_from: str | None
     planned_to: str | None
     expected_datetime: str | None
+    expected_from: str | None
+    expected_to: str | None
+    last_update: str | None
 
     def __init__(
             self,
@@ -26,6 +29,9 @@ class Package:
             planned_from: str | None = None,
             planned_to: str | None = None,
             expected_datetime: str | None = None,
+            expected_from: str | None = None,
+            expected_to: str | None = None,
+            last_update: str | None = None,
     ):
         self.key = key
         self.name = name
@@ -39,3 +45,6 @@ class Package:
         self.planned_from = planned_from
         self.planned_to = planned_to
         self.expected_datetime = expected_datetime
+        self.expected_from = expected_from
+        self.expected_to = expected_to
+        self.last_update = last_update

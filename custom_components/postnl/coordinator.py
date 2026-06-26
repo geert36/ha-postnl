@@ -90,25 +90,30 @@ class PostNLCoordinator(DataUpdateCoordinator):
             colli = track_and_trace_details.get('colli', {}).get(shipment['barcode'], {})
 
             status_message = "Unknown"
+            expected_datetime = None
+            expected_from = None
+            expected_to = None
+            last_update = None
 
             if colli:
                 _LOGGER.debug("Colli details found for shipment %s: %s", shipment['key'], colli)
-                if colli.get("routeInformation"):
-                    route_information = colli.get("routeInformation")
-                    planned_date = route_information.get("plannedDeliveryTime")
-                    planned_from = route_information.get("plannedDeliveryTimeWindow", {}).get("startDateTime")
-                    planned_to = route_information.get("plannedDeliveryTimeWindow", {}).get('endDateTime')
+                if colli.get('routeInformation'):
+                    route_information = colli.get('routeInformation')
+                    planned_date = route_information.get('plannedDeliveryTime')
+                    planned_from = route_information.get('plannedDeliveryTimeWindow', {}).get('startDateTime')
+                    planned_to = route_information.get('plannedDeliveryTimeWindow', {}).get('endDateTime')
                     expected_datetime = route_information.get('expectedDeliveryTime')
+                    expected_from = route_information.get('expectedDeliveryTimeWindow', {}).get('startDateTime')
+                    expected_to = route_information.get('expectedDeliveryTimeWindow', {}).get('endDateTime')
+                    last_update = route_information.get('lastUpdate')
                 elif colli.get('eta'):
                     planned_date = colli.get('eta', {}).get('start')
                     planned_from = colli.get('eta', {}).get('start')
                     planned_to = colli.get('eta', {}).get('end')
-                    expected_datetime = None
                 else:
                     planned_date = shipment.get('deliveryWindowFrom', None)
                     planned_from = shipment.get('deliveryWindowFrom', None)
                     planned_to = shipment.get('deliveryWindowTo', None)
-                    expected_datetime = None
 
                 status_message = colli.get('statusPhase', {}).get('message', "Unknown")
             else:
@@ -116,7 +121,6 @@ class PostNLCoordinator(DataUpdateCoordinator):
                 planned_date = shipment.get('deliveryWindowFrom', None)
                 planned_from = shipment.get('deliveryWindowFrom', None)
                 planned_to = shipment.get('deliveryWindowTo', None)
-                expected_datetime = None
 
             return Package(
                 key=shipment.get('key'),
@@ -130,7 +134,10 @@ class PostNLCoordinator(DataUpdateCoordinator):
                 planned_date=planned_date,
                 planned_from=planned_from,
                 planned_to=planned_to,
-                expected_datetime=expected_datetime
+                expected_datetime=expected_datetime,
+                expected_from=expected_from,
+                expected_to=expected_to,
+                last_update=last_update
             )
         except requests.exceptions.RequestException as exception:
             _LOGGER.error("Error fetching Track and Trace details for shipment %s: %s", shipment.get('key'), exception, exc_info=True)

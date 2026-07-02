@@ -1,0 +1,12 @@
+{
+    "entity": {
+        "sensor": {
+            "delivery": {
+                "name": "Bezorging"
+            },
+            "distribution": {
+                "name": "Verzending"
+            }
+        }
+    }
+}

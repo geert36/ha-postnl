@@ -1,0 +1,12 @@
+{
+    "entity": {
+        "sensor": {
+            "delivery": {
+                "name": "Delivery"
+            },
+            "distribution": {
+                "name": "Distribution"
+            }
+        }
+    }
+}

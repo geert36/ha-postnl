@@ -34,12 +34,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
             coordinator=coordinator,
             postnl_userinfo=userinfo,
             unique_id=userinfo.get('account_id') + "_delivery",
-            name="PostNL bezorging"
         ),
         PostNLDelivery(
             coordinator=coordinator,
             postnl_userinfo=userinfo,
-            name="PostNL verzending",
             unique_id=userinfo.get('account_id') + "_distribution",
             receiver=False
         )
@@ -47,12 +45,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     _LOGGER.debug("PostNL sensors added")
 
 class PostNLDelivery(CoordinatorEntity, Entity):
-    def __init__(self, coordinator, postnl_userinfo, unique_id, name, receiver: bool = True):
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, postnl_userinfo, unique_id, receiver: bool = True):
         """Initialize the PostNL sensor."""
-        super().__init__(coordinator, context=name)
+        super().__init__(coordinator, context=unique_id)
         self.postnl_userinfo = postnl_userinfo
         self._unique_id = unique_id
-        self._name: str = name
         self._attributes: dict[str, list[Package]] = {
             'enroute': [],
             'delivered': [],
@@ -79,9 +78,9 @@ class PostNLDelivery(CoordinatorEntity, Entity):
         )
 
     @property
-    def name(self) -> str:
-        """Return the name of the sensor."""
-        return self._name
+    def translation_key(self) -> str:
+        """Return the translation key for this sensor."""
+        return "delivery" if self.receiver else "distribution"
 
     @property
     def state(self):

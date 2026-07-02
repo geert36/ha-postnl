@@ -25,6 +25,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> True:
     """Set up PostNL from config entry."""
     _LOGGER.debug("Setup Entry PostNL")
 
+    if entry.title != "PostNL":
+        hass.config_entries.async_update_entry(entry, title="PostNL")
+
     hass.data.setdefault(DOMAIN, {})
 
     implementation = await async_get_config_entry_implementation(hass, entry)

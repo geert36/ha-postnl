@@ -33,14 +33,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         PostNLDelivery(
             coordinator=coordinator,
             postnl_userinfo=userinfo,
-            unique_id= userinfo.get('account_id') + "_" + "delivery",
-            name="PostNL_delivery"
+            unique_id=userinfo.get('account_id') + "_delivery",
+            name="PostNL bezorging"
         ),
         PostNLDelivery(
             coordinator=coordinator,
             postnl_userinfo=userinfo,
-            name="PostNL_distribution",
-            unique_id=userinfo.get('account_id') + "_" + "distribution",
+            name="PostNL verzending",
+            unique_id=userinfo.get('account_id') + "_distribution",
             receiver=False
         )
     ])
@@ -73,8 +73,9 @@ class PostNLDelivery(CoordinatorEntity, Entity):
             identifiers={
                 (DOMAIN, self.postnl_userinfo.get('account_id'))
             },
-            name=self.postnl_userinfo.get('email'),
+            name="PostNL",
             manufacturer="PostNL",
+            model=self.postnl_userinfo.get('email'),
         )
 
     @property
@@ -100,7 +101,7 @@ class PostNLDelivery(CoordinatorEntity, Entity):
     @property
     def icon(self):
         """Icon to use in the frontend."""
-        return "mdi:package-variant-closed"
+        return "mdi:package-variant-closed" if self.receiver else "mdi:package-variant-closed-send"
 
     @callback
     def _handle_coordinator_update(self) -> None:

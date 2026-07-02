@@ -8,7 +8,7 @@ from gql.transport.exceptions import TransportQueryError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import (ConfigEntryNotReady, HomeAssistantError)
+from homeassistant.exceptions import (ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError)
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.config_entry_oauth2_flow import (
@@ -127,9 +127,7 @@ class AsyncConfigEntryAuth:
         except (ClientResponseError, ClientError) as exception:
             _LOGGER.debug("API error: %s", exception)
             if exception.status == 400:
-                self.oauth_session.config_entry.async_start_reauth(
-                    self.oauth_session.hass
-                )
+                raise ConfigEntryAuthFailed(exception) from exception
 
             raise HomeAssistantError(exception) from exception
         except TransportQueryError as exception:

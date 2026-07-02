@@ -90,7 +90,7 @@ class PostNLDelivery(CoordinatorEntity, Entity):
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement of this entity, if any."""
-        return 'packages'
+        return 'pakketten'
 
     @property
     def extra_state_attributes(self):
